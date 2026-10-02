@@ -1,0 +1,51 @@
+{
+  "title": "DevSensei LLMOps Dashboard",
+  "uid": "devsensei-llmops-dash",
+  "refresh": "5s",
+  "panels": [
+    {
+      "title": "Request Rate Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(devsensei_request_count[5m])",
+          "legendFormat": "{{endpoint}} - {{status}}"
+        }
+      ]
+    },
+    {
+      "title": "Average Agent Duration",
+      "type": "barchart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(devsensei_agent_run_duration_seconds_sum[5m]) / rate(devsensei_agent_run_duration_seconds_count[5m])",
+          "legendFormat": "{{agent_name}}"
+        }
+      ]
+    },
+    {
+      "title": "Average Faithfulness Score Over Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "avg_over_time(devsensei_rag_faithfulness_score[5m])",
+          "legendFormat": "Faithfulness Score (0-1)"
+        }
+      ]
+    },
+    {
+      "title": "Token Consumption By Agent",
+      "type": "piechart",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (agent_name) (increase(devsensei_llm_token_count[1h]))",
+          "legendFormat": "{{agent_name}}"
+        }
+      ]
+    }
+  ]
+}

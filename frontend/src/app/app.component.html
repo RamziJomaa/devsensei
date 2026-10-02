@@ -1,0 +1,37 @@
+<div class="container">
+  <header>
+    <h1>🛡️ DevSensei</h1>
+    <p>Agentic Codebase Reviewer</p>
+  </header>
+
+  <div class="card form-container">
+    <div class="form-group">
+      <label for="repoUrl">GitHub Repository URL</label>
+      <input type="text" id="repoUrl" [(ngModel)]="repoUrl" placeholder="https://github.com/owner/repo" />
+    </div>
+    
+    <div class="form-group">
+      <label for="token">GitHub Token (Optional, avoids rate limits)</label>
+      <input type="password" id="token" [(ngModel)]="githubToken" placeholder="ghp_..." />
+    </div>
+
+    <button (click)="onSubmit()" [disabled]="isLoading || !repoUrl">
+      {{ isLoading ? (isPolling ? '🤖 Agents are analyzing...' : 'Submitting...') : 'Start Analysis' }}
+    </button>
+  </div>
+
+  <div *ngIf="error" class="error-banner">
+    {{ error }}
+  </div>
+
+  <div *ngIf="isLoading && isPolling" class="loading-state">
+    <div class="spinner"></div>
+    <p>LangGraph multi-agent workflow is executing. This may take 2-3 minutes...</p>
+  </div>
+
+  <div *ngIf="reportMarkdown" class="report-container">
+    <h2>Analysis Complete</h2>
+    <!-- Render raw markdown to HTML -->
+    <div class="markdown-body" [innerHTML]="renderedHtml"></div>
+  </div>
+</div>

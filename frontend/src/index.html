@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevSensei AI Reviewer</title>
+    <!-- Fallback pure JS implementation ensuring docker-compose up works without local Angular CLI installed -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f7fa; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        button { background: #0066cc; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        #report { margin-top: 20px; background: white; padding: 20px; border-radius: 8px; display: none; line-height: 1.6; }
+        #loading { display: none; margin: 20px 0; color: #666; font-weight: bold; }
+        #error { color: red; display: none; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <h1>🛡️ DevSensei</h1>
+    <div class="card">
+        <label>GitHub Repository URL</label>
+        <input type="text" id="repoUrl" placeholder="https://github.com/owner/repo">
+        <label>GitHub Token (Optional)</label>
+        <input type="password" id="token" placeholder="ghp_...">
+        <button id="submitBtn" onclick="submitAnalysis()">Start Analysis</button>
+        <div id="error"></div>
+        <div id="loading">🤖 AI Agents are exploring the codebase... (Polling status)</div>
+    </div>
+    
+    <div id="report"></div>
+
+    <script>
+        async function submitAnalysis() {
+            const repoUrl = document.getElementById('repoUrl').value;
+            const token = document.getElementById('token').value;
+            const btn = document.getElementById('submitBtn');
+            const errDiv = document.getElementById('error');
+            const loadDiv = document.getElementById('loading');
+            const reportDiv = document.getElementById('report');
+
+            if (!repoUrl) return;
+
+            btn.disabled = true;
+            errDiv.style.display = 'none';
+            reportDiv.style.display = 'none';
+            loadDiv.style.display = 'block';
+
+            try {
+                const res = await fetch('/api/v1/analyse', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ repo_url: repoUrl, github_token: token || undefined })
+                });
+                
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed to submit');
+                
+                pollStatus(data.analysis_id);
+            } catch (e) {
+                errDiv.textContent = e.message;
+                errDiv.style.display = 'block';
+                loadDiv.style.display = 'none';
+                btn.disabled = false;
+            }
+        }
+
+        async function pollStatus(id) {
+            const interval = setInterval(async () => {
+                const res = await fetch(`/api/v1/analysis/${id}/status`);
+                const data = await res.json();
+                
+                if (data.status === 'done') {
+                    clearInterval(interval);
+                    fetchReport(id);
+                } else if (data.status === 'failed') {
+                    clearInterval(interval);
+                    document.getElementById('error').textContent = "Analysis failed in backend.";
+                    document.getElementById('error').style.display = 'block';
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('submitBtn').disabled = false;
+                }
+            }, 3000);
+        }
+
+        async function fetchReport(id) {
+            const res = await fetch(`/api/v1/report/${id}`);
+            const data = await res.json();
+            
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('submitBtn').disabled = false;
+            
+            const reportDiv = document.getElementById('report');
+            reportDiv.innerHTML = marked.parse(data.markdown_content || 'No report generated');
+            reportDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
